@@ -1,0 +1,89 @@
+{
+  "entities": {
+    "Request": {
+      "title": "Request",
+      "description": "Digital Health Data Report Request",
+      "type": "object",
+      "properties": {
+        "requesterName": {
+          "type": "string",
+          "description": "Full name of the person requesting the report"
+        },
+        "requesterEmail": {
+          "type": "string",
+          "description": "Email address of the requester"
+        },
+        "department": {
+          "type": "string",
+          "description": "Department or organization name"
+        },
+        "reportType": {
+          "type": "string",
+          "description": "Category or type of the health report requested"
+        },
+        "purpose": {
+          "type": "string",
+          "description": "Intended use or purpose of the report"
+        },
+        "urgency": {
+          "type": "string",
+          "enum": ["normal", "urgent"],
+          "description": "Urgency level of the requested report"
+        },
+        "neededDate": {
+          "type": "string",
+          "format": "date",
+          "description": "Target date when the report is needed (required if urgent)"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "completed"],
+          "description": "Current status of the request (pending or completed)"
+        },
+        "requestDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date when the request was made"
+        },
+        "completedDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date when the request was completed"
+        },
+        "adminNotes": {
+          "type": "string",
+          "description": "Internal notes or follow-up details from administrators"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user who logged/requested it"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Firestore server timestamp of document creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Firestore server timestamp of document modification"
+        }
+      },
+      "required": [
+        "requesterName",
+        "requesterEmail",
+        "department",
+        "reportType",
+        "purpose",
+        "status",
+        "userId"
+      ]
+    }
+  },
+  "firestore": {
+    "/requests/{requestId}": {
+      "schema": "Request",
+      "description": "Collection of digital health report requests"
+    }
+  }
+}

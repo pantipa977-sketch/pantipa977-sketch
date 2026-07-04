@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (default-deny catch-all)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Request Validation Helper
+    function isValidRequest(data) {
+      return data.requesterName is string && data.requesterName.size() > 0 && data.requesterName.size() <= 200
+        && (!data.keys().contains('requesterPhone') || (data.requesterPhone is string && data.requesterPhone.size() <= 200))
+        && (!data.keys().contains('requesterEmail') || (data.requesterEmail is string && data.requesterEmail.size() <= 200))
+        && data.department is string && data.department.size() > 0 && data.department.size() <= 200
+        && data.reportType is string && data.reportType.size() > 0 && data.reportType.size() <= 200
+        && data.purpose is string && data.purpose.size() > 0 && data.purpose.size() <= 1000
+        && (data.status == 'pending' || data.status == 'processing' || data.status == 'completed')
+        && data.userId is string && data.userId.size() <= 128
+        && (!data.keys().contains('urgency') || (data.urgency is string && (data.urgency == 'normal' || data.urgency == 'urgent')))
+        && (!data.keys().contains('neededDate') || (data.neededDate is string && data.neededDate.size() <= 100));
+    }
+
+    match /requests/{requestId} {
+      allow get: if isSignedIn() && isValidId(requestId);
+      allow list: if isSignedIn();
+      
+      allow create: if isSignedIn() 
+        && isValidId(requestId)
+        && isValidRequest(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isSignedIn()
+        && isValidId(requestId)
+        && isValidRequest(incoming())
+        && incoming().userId == existing().userId
+        && (!existing().keys().contains('createdAt') || incoming().createdAt == existing().createdAt)
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Requester updating their request details
+          (existing().status == 'pending' && incoming().diff(existing()).affectedKeys().hasOnly(['requesterName', 'requesterPhone', 'department', 'reportType', 'purpose', 'urgency', 'neededDate', 'updatedAt']))
+          ||
+          // Action 2: Staff updating request status and admin notes
+          (incoming().diff(existing()).affectedKeys().hasOnly(['status', 'adminNotes', 'completedDate', 'itOperator', 'updatedAt']))
+        );
+
+      allow delete: if isSignedIn() && isValidId(requestId);
+    }
+  }
+}
